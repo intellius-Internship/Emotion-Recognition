@@ -18,7 +18,7 @@ class LightningPLM(LightningModule):
         self.hparams = hparams
 
         self.model_name = hparams.model_name.lower()
-        self.model, self.tokenizer = load_model(self.model_name, self.hparams.num_labels)
+        self.model, self.tokenizer = load_model(model_name=self.model_name, num_labels=self.hparams.num_labels)
         self.loss_function = torch.nn.CrossEntropyLoss()  
 
     @staticmethod
@@ -98,7 +98,7 @@ class LightningPLM(LightningModule):
 
     def train_dataloader(self):
         data_path = f'{self.hparams.data_dir}/train.csv'
-        self.train_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len)
+        self.train_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len, delimiter=self.hparams.delimiter)
         train_dataloader = DataLoader(
             self.train_set, batch_size=self.hparams.batch_size, num_workers=2,
             shuffle=True, collate_fn=self._collate_fn)
@@ -106,7 +106,7 @@ class LightningPLM(LightningModule):
     
     def val_dataloader(self):
         data_path = f'{self.hparams.data_dir}/valid.csv'
-        self.valid_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len)
+        self.valid_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len, delimiter=self.hparams.delimiter)
         val_dataloader = DataLoader(
             self.valid_set, batch_size=self.hparams.batch_size, num_workers=2,
             shuffle=True, collate_fn=self._collate_fn)
