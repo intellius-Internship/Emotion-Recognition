@@ -7,8 +7,7 @@ import warnings
 import numpy as np
 import transformers
 
-from utils.token_config import *
-from model import LightningPLM
+from plm import LightningPLM
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -37,6 +36,10 @@ if __name__ == "__main__":
                         type=str,
                         default='baseline')
 
+    parser.add_argument('--num_labels',
+                        type=int,
+                        default=6)
+
     parser.add_argument("--gpuid", nargs='+', type=int, default=0)
 
     parser = LightningPLM.add_model_specific_args(parser)
@@ -62,7 +65,7 @@ if __name__ == "__main__":
             mode='min',
             prefix=f'{args.model_name}'
         )
-        # python main.py --train --gpuid 0 1 2 --max_epochs 5 --data_dir ../data --model_name kogpt3_chat --model_version gpt3
+        # python main.py --train --gpuid 0 1 2 --max_epochs 5 --data_dir ../data --model_name kogpt3_chat
         model = LightningPLM(args)
         model.train()
         trainer = Trainer(
@@ -74,7 +77,7 @@ if __name__ == "__main__":
                         log_every_n_steps=50, 
                         logger=True, 
                         max_epochs=args.max_epochs, 
-                        num_processes=1,
+                        num_processes=4,
                         accelerator='ddp')
         
         trainer.fit(model)
