@@ -9,3 +9,6 @@ __pycache__/
 
 lightning_logs/
 model_ckpt/
+
+# KoBertTokenizer from monologg/KoELECTRA
+tokenization/
