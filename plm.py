@@ -1,14 +1,16 @@
 import torch
 import argparse
 
-from util import load_model
+from utils import load_model, Logger
 
-from ..dataloader import DialogueData
+from dataloader import DialogueData
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from transformers.optimization import AdamW, get_cosine_schedule_with_warmup
 
+
+logger = Logger('model-log', 'log/')
 
 class LightningPLM(LightningModule):
     def __init__(self, hparams):
@@ -16,21 +18,20 @@ class LightningPLM(LightningModule):
         self.hparams = hparams
 
         self.model_name = hparams.model_name.lower()
-        self.model, self.tokenizer = load_model(self.model_name)   
-        self.loss_function = torch.nn.CrossEntropyLoss(reduction='none')
+        self.model, self.tokenizer = load_model(self.model_name, self.hparams.num_labels)
+        self.loss_function = torch.nn.CrossEntropyLoss()  
 
     @staticmethod
     def add_model_specific_args(parent_parser):
         # add model specific args
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument('--max-len',
+        parser.add_argument('--max_len',
                             type=int,
                             default=256,
-                            help='max sentence length on input (default: 256)')
-
+                            help='max sentence length on input (default: 512)')
         parser.add_argument('--batch-size',
                             type=int,
-                            default=96,
+                            default=4,
                             help='batch size for training (default: 96)')
         parser.add_argument('--lr',
                             type=float,
@@ -42,29 +43,25 @@ class LightningPLM(LightningModule):
                             help='warmup ratio')
         return parser
 
-    def forward(self, inputs):
-        # (batch, seq_len, hiddens)
-        output = self.model(inputs, return_dict=True)
+    def forward(self, input_ids, attention_mask=None, labels=None):
+        output = self.model(input_ids=input_ids, attention_mask=attention_mask, return_dict=True)
         return output.logits
 
     def training_step(self, batch, batch_idx):
-        token_ids, mask, label = batch
-        out = self(token_ids)
-        mask_3d = mask.unsqueeze(dim=2).repeat_interleave(repeats=out.shape[2], dim=2)
-        mask_out = torch.where(mask_3d == 1, out, self.neg * torch.ones_like(out))
-        loss = self.loss_function(mask_out.transpose(2, 1), label)
-        loss_avg = loss.sum() / mask.sum()
-        self.log('train_loss', loss_avg)
-        return loss_avg
+        input_ids, attention_mask, label = batch
+        logits = self(input_ids=input_ids, attention_mask=attention_mask)
+        loss = self.loss_function(logits.view(-1, self.hparams.num_labels), label.view(-1))
+        
+        self.log('train_loss', loss)
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        token_ids, mask, label = batch
-        out = self(token_ids)
-        mask_3d = mask.unsqueeze(dim=2).repeat_interleave(repeats=out.shape[2], dim=2)
-        mask_out = torch.where(mask_3d == 1, out, self.neg * torch.ones_like(out))
-        loss = self.loss_function(mask_out.transpose(2, 1), label)
-        loss_avg = loss.sum() / mask.sum()
-        return loss_avg
+        input_ids, attention_mask, label = batch
+        logits = self(input_ids=input_ids, attention_mask=attention_mask)
+        loss = self.loss_function(logits.view(-1, self.hparams.num_labels), label.view(-1))
+
+        self.log('val_loss', loss)
+        return loss
 
     def validation_epoch_end(self, outputs):
         avg_losses = []
@@ -108,7 +105,7 @@ class LightningPLM(LightningModule):
         return train_dataloader
     
     def val_dataloader(self):
-        data_path = f'{self.hparams.data_dir}/val.csv'
+        data_path = f'{self.hparams.data_dir}/valid.csv'
         self.valid_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len)
         val_dataloader = DataLoader(
             self.valid_set, batch_size=self.hparams.batch_size, num_workers=2,
