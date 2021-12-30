@@ -8,9 +8,11 @@ import numpy as np
 import transformers
 
 from plm import LightningPLM
+from eval import evaluation
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+
 
 warnings.filterwarnings(action='ignore')
 transformers.logging.set_verbosity_error()
@@ -32,6 +34,10 @@ if __name__ == "__main__":
                         type=str,
                         default='data')
 
+    parser.add_argument('--delimiter',
+                        type=str,
+                        default=' ')
+
     parser.add_argument('--model_name',
                         type=str,
                         default='baseline')
@@ -39,6 +45,11 @@ if __name__ == "__main__":
     parser.add_argument('--num_labels',
                         type=int,
                         default=6)
+
+    parser.add_argument('--model_pt',
+                        type=str,
+                        default='baseline-last.ckpt')
+
 
     parser.add_argument("--gpuid", nargs='+', type=int, default=0)
 
@@ -76,9 +87,12 @@ if __name__ == "__main__":
                         gradient_clip_val=1.0, 
                         log_every_n_steps=50, 
                         logger=True, 
-                        max_epochs=args.max_epochs, 
-                        num_processes=4,
-                        accelerator='ddp')
+                        max_epochs=args.max_epochs,
+                        num_processes=1,
+                        accelerator='ddp' if args.model_name in ['kobert', 'electra'] else None)
         
         trainer.fit(model)
         logging.info('best model path {}'.format(checkpoint_callback.best_model_path))
+
+    else:
+        evaluation(args)
