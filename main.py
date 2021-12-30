@@ -95,4 +95,5 @@ if __name__ == "__main__":
         logging.info('best model path {}'.format(checkpoint_callback.best_model_path))
 
     else:
-        evaluation(args)
+        with torch.cuda.device(args.gpuid[0]):
+            evaluation(args)
