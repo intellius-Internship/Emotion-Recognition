@@ -28,7 +28,7 @@ class DialogueData(Dataset):
             ids += [self.tokenizer.pad_token_id]
 
         if len(ids) > self.max_len:
-            ids = ids[:self.max_len]
+            ids = ids[:self.max_len-1] + ids[-1]
         return ids
 
     def __getitem__(self, idx):
