@@ -46,11 +46,10 @@ balanced data이기 때문에 Accuracy로 성능 측정
 
 | Model | Accuracy |
 |--|--|
-| `monologg/koelectra-base-v3` | 55.38 |
-| `monologg/kobert` | 17.64 |
+| `monologg/koelectra-base-v3` | 67.94 |
+| `monologg/kobert` | 62.31 |
 | `monologg/kobigbird-bert-base` | 68.13 |
 
-(*max_epochs=5*)
 
 <br>
 
