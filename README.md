@@ -8,9 +8,7 @@ Accuracy와 F1 Score로 성능 측정
 | 불안 | 2 |
 | 분노 | 0 |
 | 슬픔 | 1 |
-| 기쁨 | 5 |
-| 상처 | 3 |
-| 당황 | 4 |
+| 기쁨 | 3 |
 
 <br>
 
@@ -20,21 +18,18 @@ Accuracy와 F1 Score로 성능 측정
 
 | emotion-main-category (dev) | counts |
 |--|--|
-| 불안 | 7324 |
-| 분노 | 6908 |
-| 슬픔 | 6903 |
-| 기쁨 | 6725 |
-| 상처 | 6617 |
-| 당황 | 6350 |
+| 불안 | 9308 |
+| 분노 | 8783 |
+| 슬픔 | 12140 |
+| 기쁨 | 7420 |
+
 
 | emotion-main-category (test) | counts |
 |--|--|
-| 불안 | 904 |
-| 분노 | 872 |
-| 슬픔 | 860 |
-| 기쁨 | 840 |
-| 상처 | 831 |
-| 당황 | 815 |
+| 불안 | 1193 |
+| 분노 | 1105 |
+| 슬픔 | 1484 |
+| 기쁨 | 920 |
 
 
 </div>
@@ -42,7 +37,11 @@ Accuracy와 F1 Score로 성능 측정
 
 <br>
 
-### **Deep Learning**
+## 📈 **데이터 별 성능 비교**
+
+<br>
+
+### **PLM on Original Data** 
 
 | Model | Accuracy | F1 Score |
 |--|--|--|
@@ -50,14 +49,30 @@ Accuracy와 F1 Score로 성능 측정
 | `monologg/kobert` | 62.35 | 65.23 |
 | `monologg/kobigbird-bert-base` | 66.75 | 67.50 |
 
+<br>
+
+
+### **PLM on Preprocessed Data** 
+
+| Model | Accuracy | F1 Score |
+|--|--|--|
+| `monologg/koelectra-base-v3` | 75.90 | 76.80 | 
+| `monologg/kobert` |  |  |
+| `monologg/kobigbird-bert-base` | 76.09 | 76.92 |
 
 <br>
 
-### **Machine Learning**
+
+### **ML Model on Preprocessed Data**
 
 
-| Model | Accuracy |
-|--|--|
-|  |  |
+| Model | Accuracy | F1 Score | 
+|--|--|--|
+| Support Vector Classifier | 67.73 | 68.05 | 
+| XGBoost Classifier | 65.54 | 65.48 | 
+| Decision Tree | 55.69 | 55.55 | 
+| KNeighbors Classifier | 50.76 | 47.85 | 
 
+
+<br>
 
