@@ -1,7 +1,7 @@
 # :tada: **Emotion-Recognition** 
 
 ### **Evaluation**
-balanced data이기 때문에 Accuracy로 성능 측정
+Accuracy와 F1 Score로 성능 측정
 
 | CATEGORY | LABEL |
 |--|--|
@@ -44,13 +44,12 @@ balanced data이기 때문에 Accuracy로 성능 측정
 
 ### **Deep Learning**
 
-| Model | Accuracy |
-|--|--|
-| `monologg/koelectra-base-v3` | 55.38 |
-| `monologg/kobert` | 17.64 |
-| `monologg/kobigbird-bert-base` | 68.13 |
+| Model | Accuracy | F1 Score |
+|--|--|--|
+| `monologg/koelectra-base-v3` | 66.89 | 67.37 | 
+| `monologg/kobert` | 62.35 | 65.23 |
+| `monologg/kobigbird-bert-base` | 66.75 | 67.50 |
 
-(*max_epochs=5*)
 
 <br>
 
