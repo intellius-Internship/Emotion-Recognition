@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from transformers.optimization import AdamW, get_cosine_schedule_with_warmup
+from transformers import AdamW, get_linear_schedule_with_warmup
 
 
 logger = Logger('model-log', 'log/')
@@ -27,15 +28,15 @@ class LightningPLM(LightningModule):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument('--max_len',
                             type=int,
-                            default=256,
+                            default=512,
                             help='max sentence length on input (default: 512)')
         parser.add_argument('--batch-size',
                             type=int,
-                            default=4,
+                            default=8,
                             help='batch size for training (default: 96)')
         parser.add_argument('--lr',
                             type=float,
-                            default=5e-5,
+                            default=3e-5,
                             help='The initial learning rate')
         parser.add_argument('--warmup_ratio',
                             type=float,
@@ -52,22 +53,21 @@ class LightningPLM(LightningModule):
         logits = self(input_ids=input_ids, attention_mask=attention_mask)
         loss = self.loss_function(logits.view(-1, self.hparams.num_labels), label.view(-1))
         
-        self.log('train_loss', loss)
+        self.log('train_loss', loss, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         input_ids, attention_mask, label = batch
         logits = self(input_ids=input_ids, attention_mask=attention_mask)
         loss = self.loss_function(logits.view(-1, self.hparams.num_labels), label.view(-1))
-
-        self.log('val_loss', loss)
+        self.log('val_loss', loss, prog_bar=True, on_step=False, on_epoch=True)
         return loss
 
     def validation_epoch_end(self, outputs):
         avg_losses = []
         for loss_avg in outputs:
             avg_losses.append(loss_avg)
-        self.log('val_loss', torch.stack(avg_losses).mean(), prog_bar=True)
+        self.log('val_loss', torch.stack(avg_losses).mean())
     
     def configure_optimizers(self):
         # Prepare optimizer
@@ -80,12 +80,14 @@ class LightningPLM(LightningModule):
         optimizer = AdamW(optimizer_grouped_parameters,
                           lr=self.hparams.lr, correct_bias=False)
         # warm up lr
-        num_train_steps = len(self.train_dataloader()) * self.hparams.max_epochs
-        num_warmup_steps = int(num_train_steps * self.hparams.warmup_ratio)
-        scheduler = get_cosine_schedule_with_warmup(
+        train_total = len(self.train_dataloader()) * self.hparams.max_epochs
+        warmup_steps = int(train_total * self.hparams.warmup_ratio)
+
+        scheduler = get_linear_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=num_warmup_steps, num_training_steps=num_train_steps)
-        lr_scheduler = {'scheduler': scheduler, 'name': 'cosine_schedule_with_warmup',
+            num_warmup_steps=warmup_steps, 
+            num_training_steps=train_total)
+        lr_scheduler = {'scheduler': scheduler, 'name': 'get_linear_schedule_with_warmup',
                         'monitor': 'loss', 'interval': 'step',
                         'frequency': 1}
         return [optimizer], [lr_scheduler]

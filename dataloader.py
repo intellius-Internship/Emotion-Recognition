@@ -7,10 +7,9 @@ from torch.utils.data import Dataset
 
 class DialogueData(Dataset):
     def __init__(self, data_path, tokenizer, max_len=128, delimiter=' '):
-        self._data = pd.read_csv(data_path, sep='\t', converters={
+        self._data = pd.read_csv(data_path, sep='\t', encoding='utf-8', converters={
             'human-utter' : literal_eval
         })
-
         self.max_len = max_len
         self.delimiter = delimiter
         self.tokenizer = tokenizer
@@ -35,7 +34,7 @@ class DialogueData(Dataset):
         turn = self._data.iloc[idx]
         
         utters = turn['human-utter']
-        label = int(turn['emotion-type'][1]) - 1
+        label = int(turn['target'])
 
         utterance = self.delimiter.join(utters)
 

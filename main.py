@@ -34,6 +34,10 @@ if __name__ == "__main__":
                         type=str,
                         default='data')
 
+    parser.add_argument('--save_dir',
+                        type=str,
+                        default='result')
+
     parser.add_argument('--delimiter',
                         type=str,
                         default=' ')
@@ -50,6 +54,10 @@ if __name__ == "__main__":
                         type=str,
                         default='baseline-last.ckpt')
 
+    parser.add_argument('--monitor',
+                        type=str,
+                        default='val_loss')
+            
 
     parser.add_argument("--gpuid", nargs='+', type=int, default=0)
 
@@ -69,10 +77,10 @@ if __name__ == "__main__":
     if args.train:
         checkpoint_callback = ModelCheckpoint(
             dirpath='model_ckpt',
-            filename='{epoch:02d}-{train_loss:.2f}',
+            filename='{epoch:02d}-{val_loss:.2f}',
             verbose=True,
             save_last=True,
-            monitor='train_loss',
+            monitor=args.monitor,
             mode='min',
             prefix=f'{args.model_name}'
         )
