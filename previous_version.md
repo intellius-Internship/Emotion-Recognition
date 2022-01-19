@@ -48,16 +48,6 @@ Accuracy와 F1 Score로 성능 측정
 
 <br>
 
-### **PLM on Original Data** 
-
-| Model | Accuracy | F1 Score |
-|--|--|--|
-| `monologg/koelectra-base-v3` | 66.89 | 67.37 | 
-| `monologg/kobert` | 62.35 | 65.23 |
-| `monologg/kobigbird-bert-base` | 66.75 | 67.50 |
-
-<br>
-
 
 ### **PLM on Preprocessed Data** 
 
