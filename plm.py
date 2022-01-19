@@ -18,8 +18,8 @@ class LightningPLM(LightningModule):
         super(LightningPLM, self).__init__()
         self.hparams = hparams
 
-        self.model_name = hparams.model_name.lower()
-        self.model, self.tokenizer = load_model(model_name=self.model_name, num_labels=self.hparams.num_labels)
+        self.model_type = hparams.model_type.lower()
+        self.model, self.tokenizer = load_model(model_type=self.model_type, num_labels=self.hparams.num_labels)
         self.loss_function = torch.nn.CrossEntropyLoss()  
 
     @staticmethod
@@ -67,15 +67,17 @@ class LightningPLM(LightningModule):
         avg_losses = []
         for loss_avg in outputs:
             avg_losses.append(loss_avg)
-        self.log('val_loss', torch.stack(avg_losses).mean())
+        self.log('avg_val_loss', torch.stack(avg_losses).mean())
     
     def configure_optimizers(self):
         # Prepare optimizer
         param_optimizer = list(self.named_parameters())
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
         optimizer_grouped_parameters = [
-            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], \
+                'weight_decay': 0.01},
+            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], \
+                'weight_decay': 0.0}
         ]
         optimizer = AdamW(optimizer_grouped_parameters,
                           lr=self.hparams.lr, correct_bias=False)
@@ -83,11 +85,11 @@ class LightningPLM(LightningModule):
         train_total = len(self.train_dataloader()) * self.hparams.max_epochs
         warmup_steps = int(train_total * self.hparams.warmup_ratio)
 
-        scheduler = get_linear_schedule_with_warmup(
+        scheduler = get_cosine_schedule_with_warmup(
             optimizer,
             num_warmup_steps=warmup_steps, 
             num_training_steps=train_total)
-        lr_scheduler = {'scheduler': scheduler, 'name': 'get_linear_schedule_with_warmup',
+        lr_scheduler = {'scheduler': scheduler, 'name': 'get_cosine_schedule_with_warmup',
                         'monitor': 'loss', 'interval': 'step',
                         'frequency': 1}
         return [optimizer], [lr_scheduler]
@@ -100,7 +102,7 @@ class LightningPLM(LightningModule):
 
     def train_dataloader(self):
         data_path = f'{self.hparams.data_dir}/train.csv'
-        self.train_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len, delimiter=self.hparams.delimiter)
+        self.train_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len)
         train_dataloader = DataLoader(
             self.train_set, batch_size=self.hparams.batch_size, num_workers=2,
             shuffle=True, collate_fn=self._collate_fn)
@@ -108,7 +110,7 @@ class LightningPLM(LightningModule):
     
     def val_dataloader(self):
         data_path = f'{self.hparams.data_dir}/valid.csv'
-        self.valid_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len, delimiter=self.hparams.delimiter)
+        self.valid_set = DialogueData(data_path, tokenizer=self.tokenizer, max_len=self.hparams.max_len)
         val_dataloader = DataLoader(
             self.valid_set, batch_size=self.hparams.batch_size, num_workers=2,
             shuffle=True, collate_fn=self._collate_fn)

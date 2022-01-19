@@ -38,10 +38,6 @@ if __name__ == "__main__":
                         type=str,
                         default='result')
 
-    parser.add_argument('--delimiter',
-                        type=str,
-                        default=' ')
-
     parser.add_argument('--model_name',
                         type=str,
                         default='baseline')
@@ -53,10 +49,6 @@ if __name__ == "__main__":
     parser.add_argument('--model_pt',
                         type=str,
                         default='baseline-last.ckpt')
-
-    parser.add_argument('--monitor',
-                        type=str,
-                        default='val_loss')
             
 
     parser.add_argument("--gpuid", nargs='+', type=int, default=0)
@@ -77,14 +69,14 @@ if __name__ == "__main__":
     if args.train:
         checkpoint_callback = ModelCheckpoint(
             dirpath='model_ckpt',
-            filename='{epoch:02d}-{val_loss:.2f}',
+            filename='{epoch:02d}-{avg_val_loss:.2f}',
             verbose=True,
             save_last=True,
-            monitor=args.monitor,
+            monitor='avg_val_loss',
             mode='min',
             prefix=f'{args.model_name}'
         )
-        # python main.py --train --gpuid 0 1 2 --max_epochs 5 --data_dir ../data --model_name kogpt3_chat
+        # python main.py --train --gpuid 0 1 2 --max_epochs 5 --data_dir data --model_name electra_base --model_type electra
         model = LightningPLM(args)
         model.train()
         trainer = Trainer(

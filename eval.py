@@ -4,7 +4,7 @@ import re
 import torch
 import pandas as pd
 from torch import nn
-from ast import literal_eval
+
 from os.path import join as pjoin
 from plm import LightningPLM
 from utils.model_util import load_model
@@ -18,7 +18,7 @@ def tokenize(tokenizer, text, max_len):
     q_toked = tokenizer.tokenize(tokenizer.cls_token + text + tokenizer.sep_token)
     
     if len(q_toked) > max_len:
-        q_toked = q_toked[:max_len-1] + q_toked[-1]
+        q_toked = q_toked[:max_len-1] + [q_toked[-1]]
 
     token_ids = tokenizer.convert_tokens_to_ids(q_toked)
     while len(token_ids) < max_len:
@@ -28,16 +28,13 @@ def tokenize(tokenizer, text, max_len):
 
 
 def evaluation(args, **kwargs):
-    # load params
     base_setting(args)
     gpuid = args.gpuid[0]
     device = "cuda:%d" % gpuid
 
     print(args.model_pt)
-    # model = KoGPT2Chat(args)
-    # model = model.load_from_checkpoint(args.model_pt)
 
-    model, tokenizer = load_model(args.model_name, args.num_labels)
+    model, tokenizer = load_model(args.model_type, args.num_labels)
     model = model.cuda()
 
     if args.model_pt is not None:
@@ -62,10 +59,8 @@ def evaluation(args, **kwargs):
     model = model.cuda()     
     model.eval()
 
-    test_data = pd.read_csv(pjoin(args.data_dir, 'test.csv'), sep='\t', converters={
-        "human-utter" : literal_eval
-    })
-
+    test_data = pd.read_csv(pjoin(args.data_dir, 'test.csv'))
+    test_data.dropna(axis=0, inplace=True)
 
     pred_list = []
 
@@ -73,12 +68,10 @@ def evaluation(args, **kwargs):
     with torch.no_grad():
         for row in test_data.iterrows():
 
-            utterance = args.delimiter.join(row[1]['human-utter'])
-            label = int(row[1]['target'])
-            
-            if not re.sub('\s+', '', utterance):
-                print("Drop %d row (Empty row)" % row[0])
-                continue
+            utterance = row[1]['sentence']
+            label = int(row[1]['label'])
+
+            assert isinstance(utterance, str)
             
             print("Utterance: %s" % utterance)
 

@@ -4,11 +4,11 @@ from transformers import (ElectraForSequenceClassification, ElectraTokenizer, El
 
 from tokenization import KoBertTokenizer
 
-def load_model(model_name, num_labels, labels=None, cache_dir='./cache'):
+def load_model(model_type, num_labels, labels=None, cache_dir='./cache'):
     if labels is None:
         labels = list(range(num_labels))
 
-    if 'bert' == model_name:
+    if 'bert' == model_type:
         config = BertConfig.from_pretrained(
             "monologg/kobert",
             num_labels=num_labels,
@@ -23,7 +23,7 @@ def load_model(model_name, num_labels, labels=None, cache_dir='./cache'):
         tokenizer = KoBertTokenizer.from_pretrained("monologg/kobert")
         return model, tokenizer
 
-    elif 'electra' == model_name:
+    elif 'electra' == model_type:
         config = ElectraConfig.from_pretrained(
             "monologg/koelectra-base-v3-discriminator",
             num_labels=num_labels,
@@ -37,7 +37,7 @@ def load_model(model_name, num_labels, labels=None, cache_dir='./cache'):
         tokenizer = ElectraTokenizer.from_pretrained("monologg/koelectra-base-v3-discriminator")
         return model, tokenizer
 
-    elif 'bigbird' == model_name:
+    elif 'bigbird' == model_type:
         config = AutoConfig.from_pretrained("monologg/kobigbird-bert-base", 
                 num_labels=num_labels,
                 cache_dir=cache_dir)

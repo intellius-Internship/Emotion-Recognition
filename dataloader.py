@@ -6,12 +6,11 @@ from ast import literal_eval
 from torch.utils.data import Dataset
 
 class DialogueData(Dataset):
-    def __init__(self, data_path, tokenizer, max_len=128, delimiter=' '):
-        self._data = pd.read_csv(data_path, sep='\t', encoding='utf-8', converters={
+    def __init__(self, data_path, tokenizer, max_len=512):
+        self._data = pd.read_csv(data_path, encoding='utf-8', converters={
             'human-utter' : literal_eval
         })
         self.max_len = max_len
-        self.delimiter = delimiter
         self.tokenizer = tokenizer
 
     def __len__(self):
@@ -27,18 +26,16 @@ class DialogueData(Dataset):
             ids += [self.tokenizer.pad_token_id]
 
         if len(ids) > self.max_len:
-            ids = ids[:self.max_len-1] + ids[-1]
+            ids = ids[:self.max_len-1] + [ids[-1]]
         return ids
 
     def __getitem__(self, idx):
         turn = self._data.iloc[idx]
         
-        utters = turn['human-utter']
-        label = int(turn['target'])
+        utters = turn['sentence']
+        label = int(turn['label'])
 
-        utterance = self.delimiter.join(utters)
-
-        token_ids, ids_len = self._tokenize(utterance)
+        token_ids, ids_len = self._tokenize(utters)
         token_ids = self._padding(token_ids)
 
         attention_masks = [float(id>0) for id in token_ids]
