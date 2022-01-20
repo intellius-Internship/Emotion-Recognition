@@ -43,8 +43,8 @@ Accuracy와 F1 Score로 성능 측정
 | Model | Accuracy | F1 Score | 
 |--|--|--|
 | Support Vector Classifier |  |  | 
-| XGBoost Classifier |  |  | 
-| Decision Tree |  |  | 
+| XGBoost Classifier | 75.25 | 76.11 | 
+| Decision Tree | 63.60 | 64.45 | 
 | KNeighbors Classifier |  |  | 
 
 
