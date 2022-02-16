@@ -6,7 +6,7 @@ from ast import literal_eval
 from torch.utils.data import Dataset
 
 class DialogueData(Dataset):
-    def __init__(self, data_path, tokenizer, max_len=512):
+    def __init__(self, data_path, tokenizer, max_len):
         self._data = pd.read_csv(data_path, encoding='utf-8', converters={
             'human-utter' : literal_eval
         })
@@ -32,10 +32,12 @@ class DialogueData(Dataset):
     def __getitem__(self, idx):
         turn = self._data.iloc[idx]
         
-        utters = turn['sentence']
+        utters = turn['proc_text'] 
         label = int(turn['label'])
 
-        token_ids, ids_len = self._tokenize(utters)
+        utterance = utters
+
+        token_ids, ids_len = self._tokenize(utterance)
         token_ids = self._padding(token_ids)
 
         attention_masks = [float(id>0) for id in token_ids]

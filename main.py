@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 import transformers
+import pytorch_lightning as pl
 
 from plm import LightningPLM
 from eval import evaluation
@@ -22,9 +23,19 @@ logger.setLevel(logging.INFO)
 
 SEED = 19
 
+
+def set_seed(seed):
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    pl.seed_everything(seed)
+
 if __name__ == "__main__":
     
-    parser = argparse.ArgumentParser(description='Emotion Recognition based on BERT')
+    parser = argparse.ArgumentParser(description='Emotion Recognition based on PLM')
     parser.add_argument('--train',
                         action='store_true',
                         default=False,
@@ -42,14 +53,25 @@ if __name__ == "__main__":
                         type=str,
                         default='baseline')
 
+    parser.add_argument('--model_type',
+                        type=str,
+                        default='bert')
+
     parser.add_argument('--num_labels',
                         type=int,
-                        default=6)
+                        default=4)
+
+    parser.add_argument('--max_len',
+                        type=int,
+                        default=128)
 
     parser.add_argument('--model_pt',
                         type=str,
                         default='baseline-last.ckpt')
             
+    parser.add_argument('--user_input',
+                        action='store_true',
+                        default=False)
 
     parser.add_argument("--gpuid", nargs='+', type=int, default=0)
 
@@ -58,25 +80,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logging.info(args)
 
-    random.seed(SEED)
-    np.random.seed(SEED)
-    torch.manual_seed(SEED)
-    torch.cuda.manual_seed_all(SEED)
-
+    set_seed(SEED)
     global DATA_DIR
     DATA_DIR = args.data_dir
 
     if args.train:
         checkpoint_callback = ModelCheckpoint(
             dirpath='model_ckpt',
-            filename='{epoch:02d}-{avg_val_loss:.2f}',
+            filename='{epoch:02d}-{avg_val_acc:.2f}',
             verbose=True,
-            save_last=True,
-            monitor='avg_val_loss',
-            mode='min',
+            save_last=False,
+            monitor='avg_val_acc',
+            mode='max',
             prefix=f'{args.model_name}'
         )
-        # python main.py --train --gpuid 0 1 2 --max_epochs 5 --data_dir data --model_name electra_base --model_type electra
         model = LightningPLM(args)
         model.train()
         trainer = Trainer(
@@ -89,7 +106,7 @@ if __name__ == "__main__":
                         logger=True, 
                         max_epochs=args.max_epochs,
                         num_processes=1,
-                        accelerator='ddp' if args.model_name in ['kobert', 'electra'] else None)
+                        accelerator='ddp' if args.model_type in ['bert', 'electra'] else None)
         
         trainer.fit(model)
         logging.info('best model path {}'.format(checkpoint_callback.best_model_path))

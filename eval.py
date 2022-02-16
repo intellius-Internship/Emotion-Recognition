@@ -4,13 +4,12 @@ import re
 import torch
 import pandas as pd
 from torch import nn
-
+from ast import literal_eval
 from os.path import join as pjoin
 from plm import LightningPLM
 from utils.model_util import load_model
 
 def base_setting(args):
-    args.max_len = getattr(args, 'max_len', 512)
     args.batch_size = getattr(args, 'batch_size', 4)
     args.log = getattr(args, 'log', True)
 
@@ -26,38 +25,32 @@ def tokenize(tokenizer, text, max_len):
 
     return token_ids
 
+def eval_user_input(args, model, tokenizer, device):
+    def is_valid(query: str) -> bool:
+        return re.sub('[\s]*', '', query)
 
-def evaluation(args, **kwargs):
-    base_setting(args)
-    gpuid = args.gpuid[0]
-    device = "cuda:%d" % gpuid
+    query = input('사용자 입력: ')
+    softmax = torch.nn.Softmax(dim=-1)
 
-    print(args.model_pt)
+    with torch.no_grad():
+        while is_valid(query):
 
-    model, tokenizer = load_model(args.model_type, args.num_labels)
-    model = model.cuda()
+            input_ids = torch.LongTensor(tokenize(tokenizer, text=query, max_len=args.max_len)).unsqueeze(0).to(device=device)
+            attention_mask = None
 
-    if args.model_pt is not None:
-        if args.model_pt.endswith('ckpt'):
-            model = LightningPLM.load_from_checkpoint(checkpoint_path=args.model_pt, hparams=args)
-        elif args.model_pt.endswith('bin'):
-            state_dict = torch.load(args.model_pt, map_location=device)
-            own_state = model.state_dict()
-            print(own_state.items())
-            for name, param in state_dict.items():
-                print("name : {}".format(name))
-                if name not in own_state:
-                    print("drop : {}".format(name))
-                    continue
-                if isinstance(param, nn.Parameter):
-                    param = param.data
-                print("copying name : {}".format(name))
-                own_state[name].copy_(param)
-        else:
-            raise TypeError('Unknown file extension')
+            logits = model(input_ids=input_ids, attention_mask=attention_mask).detach().cpu()
+            probs = softmax(logits)
 
-    model = model.cuda()     
-    model.eval()
+            pred = torch.argmax(probs, dim=-1).cpu().numpy().tolist()
+            prob = torch.max(probs).numpy().tolist()
+
+            print(f"Query: {query}")
+            print("Predict: {} ({:.2f})".format(pred[0], prob))
+
+            query = input('사용자 입력: ')        
+
+
+def eval_test_set(args, model, tokenizer, device):
 
     test_data = pd.read_csv(pjoin(args.data_dir, 'test.csv'))
     test_data.dropna(axis=0, inplace=True)
@@ -68,7 +61,7 @@ def evaluation(args, **kwargs):
     with torch.no_grad():
         for row in test_data.iterrows():
 
-            utterance = row[1]['sentence']
+            utterance = row[1]['proc_text']
             label = int(row[1]['label'])
 
             assert isinstance(utterance, str)
@@ -87,7 +80,33 @@ def evaluation(args, **kwargs):
                 count += 1
 
         test_data['pred-emotion'] = pred_list
-        test_data.to_csv(pjoin(args.save_dir, f'{args.model_name}.csv'), sep='\t', index=False)
+        test_data.to_csv(pjoin(args.save_dir, f'{args.model_name}-{round(count/len(test_data), 2)*100}.csv'), sep='\t', index=False)
         print(f"Accuracy: {count/len(test_data)}")
+            
+
+def evaluation(args, **kwargs):
+    # load params
+    base_setting(args)
+    gpuid = args.gpuid[0]
+    device = "cuda:%d" % gpuid
+
+    print(args.model_pt)
+
+    model, tokenizer = load_model(args.model_type, args.num_labels)
+    model = model.cuda()
+
+    if args.model_pt is not None:
+        if args.model_pt.endswith('ckpt'):
+            model = LightningPLM.load_from_checkpoint(checkpoint_path=args.model_pt, hparams=args)
+        else:
+            raise TypeError('Unknown file extension')
+
+    model = model.cuda()     
+    model.eval()
+
+    if args.user_input:
+        eval_user_input(args, model, tokenizer, device)
+    else:
+        eval_test_set(args, model, tokenizer, device)
             
 
