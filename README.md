@@ -1,52 +1,82 @@
-# :tada: **Emotion-Recognition** 
-
-### **Dataset**  
-AI-Hub 감성 대화 말뭉치의 6가지 감정 분류 중 *분노, 슬픔, 기쁨 데이터*  
-Wellness 정신건강 데이터의 *우울 데이터*  
-혐오 발화 분류 데이터의 *혐오 발화 데이터, 일반 발화 데이터*  
-
-> 혐오 분류 데이터는 영화 리뷰 데이터로, 일반 발화 데이터 중 "재밌다", "멋있어" 등 특정 발화가 포함된 데이터를 행복 데이터로 사용
-
-감정 분류 데이터 (중립, 놀람, 슬픔, 분노, 행복으로 분류)의 *중립, 슬픔, 분노, 행복 데이터*
-
-### **Evaluation**
-Accuracy와 F1 Score로 성능 측정
-
-| CATEGORY | LABEL | COUNT |
-|--|--|--|
-| 중립 | 0 |40834|
-| 행복 | 1 | 30662 |
-| 슬픔 | 2 | 24344 |
-| 분노 | 3 | 38141 |
-
-<br>
+# **Emotion-Recognition in Psychotherapeutic Conversation**
 
 
-## 📈 **메소드 별 성능 비교**
+### **파일 구조**
 
-<br>
-
-### **Performance of PLM** 
-
-| Model | Accuracy | F1 Score |
-|--|--|--|
-| `monologg/koelectra-base-v3` | 54.21 | 49.59 | 
-| `monologg/kobert` | 90.52 | 90.59 |
-| `monologg/kobigbird-bert-base` | 28.32 | 11.39 |
+```bash
+.
+├── data    
+│   ├── balacned/               균형 잡힌 클래스 분포를 가지는 balanced dataset
+│   ├── imbalanced/             대화체로만 구성되었으며, 클래스 별 데이터 분포가 불균형한 imbalanced dataset
+│   │   
+│   └── DATA.md                
+│
+├── preprocessing               데이터 전처리 
+│   ├── preprocess.py           전처리 및 학습 데이터셋 구축
+│   ├── build_dataset.py        데이터셋 구축을 위한 실행 코드
+│   └── util.py                 유틸리티                 
+│
+├── result/                     모델 테스트 결과 저장 경로
+├── utils/
+├── ...
+├── main.py                     모델 학습 및 테스트를 위한 실행 코드
+├── READMD.md
+└── ...
+```
 
 <br>
 
 
-### **Performance of ML Model**
+## **Building Emotion-Recognition Dataset** 
 
 
-| Model | Accuracy | F1 Score | 
-|--|--|--|
-| Support Vector Classifier |  |  | 
-| XGBoost Classifier | 75.25 | 76.11 | 
-| Decision Tree | 63.60 | 64.45 | 
-| KNeighbors Classifier |  |  | 
+```bash
+cd preprocessing/
+```
 
+### 1. Build Training, Validation, Test dataset
+```bash
+python build_dataset.py --preprocessing --split --data_dir ../data --result_dir ../result
+```
 
 <br>
+
+---
+
+## **Training/Testing Emotion-Recognition Model** 
+
+<br>
+
+- `model_type`: 모델 유형      
+    - `bert` : Pretrained KoBERT (`monologg/kobert`)
+    - `electra` : Pretrained KoELECTRA (`monologg/koelectra-base-v3-discriminator`)
+    - `bigbird` : Pretrained KoBigBird (`monologg/kobigbird-bert-base`)
+    - `roberta` : Pretrained KoRoBERTa (`klue/roberta-base`)
+
+### 1. Training
+
+```bash
+python main.py --train --max_epochs 10 --data_dir data/balanced --model_type roberta --model_name roberta+balanced --max_len 64 --gpuid 0
+```
+
+<br>
+
+### 2. Testing
+
+*하나의 GPU만 사용*  
+
+#### (1) `<data_dir>`/test.csv에 대한 성능 테스트
+
+```bash
+python main.py --data_dir data/balanced --model_type roberta --model_name roberta+balanced --save_dir result --max_len 64 --gpuid 0 --model_pt <model checkpoint path>
+```
+
+#### (2) 사용자 입력에 대한 성능 테스트
+
+```bash
+python main.py --user_input --data_dir data/balanced --model_type roberta --max_len 64 --gpuid 0 --model_pt <model checkpoint path>
+```
+
+<br>
+
 

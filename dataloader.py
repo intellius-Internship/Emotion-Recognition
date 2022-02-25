@@ -2,14 +2,12 @@
 import numpy as np
 import pandas as pd
 
-from ast import literal_eval
 from torch.utils.data import Dataset
 
-class DialogueData(Dataset):
+class PlmData(Dataset):
+    """Dataloader for Emotion-Recognition Model based on Transformer"""
     def __init__(self, data_path, tokenizer, max_len):
-        self._data = pd.read_csv(data_path, encoding='utf-8', converters={
-            'human-utter' : literal_eval
-        })
+        self._data = pd.read_csv(data_path, encoding='utf-8')
         self.max_len = max_len
         self.tokenizer = tokenizer
 
@@ -17,11 +15,13 @@ class DialogueData(Dataset):
         return len(self._data)
 
     def _tokenize(self, text):
-        tokens = self.tokenizer.tokenize(self.tokenizer.cls_token + str(text) + self.tokenizer.sep_token)
+        tokens = self.tokenizer.tokenize(self.tokenizer.cls_token + \
+            str(text) + self.tokenizer.sep_token)
         ids = self.tokenizer.convert_tokens_to_ids(tokens)
         return ids, len(ids)
 
     def _padding(self, ids):
+        # padding with 'pad_token_id' of tokenizer
         while len(ids) < self.max_len:
             ids += [self.tokenizer.pad_token_id]
 
@@ -32,10 +32,8 @@ class DialogueData(Dataset):
     def __getitem__(self, idx):
         turn = self._data.iloc[idx]
         
-        utters = turn['proc_text'] 
+        utterance = turn['proc_text'] 
         label = int(turn['label'])
-
-        utterance = utters
 
         token_ids, ids_len = self._tokenize(utterance)
         token_ids = self._padding(token_ids)
